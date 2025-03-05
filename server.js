@@ -58,7 +58,7 @@ function sendEmail(email, temp) {
         subject: 'Alerta de Temperatura',
         text: `¡Alerta! La temperatura ha superado el umbral. Temperatura actual: ${temp.toFixed(2)}°C`,
     };
-    transporter.sendMail(mailOptions, (error, info) => {
+    transporter.sendMail(mailOptions, (error) => {
         if (error) {
             console.log('Error enviando correo:', error);
         } else {
@@ -88,7 +88,7 @@ app.post('/login', (req, res) => {
     }
 });
 
-app.post('/cores', (req, res) => {
+app.post('/cores', (req) => {
     io.emit('coresUsage', { data: req.body});
 });
 
@@ -105,7 +105,7 @@ const authenticateToken = (req, res, next) => {
 };
 
 // Ruta protegida para obtener temperatura
-app.get('/protected/temperature', authenticateToken, (req, res) => {
+app.get('/protected/temperature', authenticateToken, (_req, res) => {
     res.json({ temperature, threshold });
 });
 
