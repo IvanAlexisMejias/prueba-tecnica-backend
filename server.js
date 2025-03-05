@@ -1,17 +1,20 @@
-const express = require('express');
+const express = require('express'); //manejar tutas y peticiones
 const app = express();
-const http = require('http');
-const { Server } = require('socket.io');
-const cors = require('cors');
-const nodemailer = require('nodemailer');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
+const http = require('http'); //crea servidor
+const { Server } = require('socket.io'); //para endpoints
+const cors = require('cors'); //middleware
+const nodemailer = require('nodemailer'); //enviar correos
+const bcrypt = require('bcrypt'); //encriptar contraseñas
+const jwt = require('jsonwebtoken'); //genera y valida tokesn
 
-const server = http.createServer(app);
+//crea el servidor que usara el framework
+const server = http.createServer(app); 
 
+//middlewares globales
 app.use(cors());
 app.use(express.json());
 
+// Configuración del servidor de WebSocket
 const io = new Server(server, {
     cors: {
         origin: "*", 
@@ -19,7 +22,7 @@ const io = new Server(server, {
     },
 });
 
-let users = [];
+let users = [];// aqui simulo la base de datos (escalable)
 let temperature = 20;
 let threshold = 30;
 
@@ -28,10 +31,10 @@ const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
         user: 'ivanalexismejias1@gmail.com',  // Correo desde el cual se envian las alertas
-        pass: 'rbec zofb qivc vene',  // Contraseña de aplicación de Gmail
+        pass: 'rbec zofb qivc vene',  
     },
     tls: {
-        rejectUnauthorized: false,  // Permitir certificados autofirmados
+        rejectUnauthorized: false,  // Permitir certificados autofirmados (no pasar asi a produccion)
     },
 });
 
@@ -42,7 +45,7 @@ setInterval(() => {
     checkTemperatureThreshold();
 }, 5000);
 
-// Verifica si la temperatura supera el umbral y envía correos
+// Verifica si la temperatura supera el umbral
 function checkTemperatureThreshold() {
     if (temperature > threshold) {
         users.forEach(user => {
@@ -50,11 +53,15 @@ function checkTemperatureThreshold() {
         });
     }
 }
+//funcionalidad incompleta (era para obtener datos de CPU)
+app.post('/cores', (req) => {
+    io.emit('coresUsage', { data: req.body});
+});
 
 // Función para enviar correos
 function sendEmail(email, temp) {
     const mailOptions = {
-        to: email,  // Correo del usuario logueado
+        to: email,  // Destinatario
         subject: 'Alerta de Temperatura',
         text: `¡Alerta! La temperatura ha superado el umbral. Temperatura actual: ${temp.toFixed(2)}°C`,
     };
@@ -72,7 +79,7 @@ function sendEmail(email, temp) {
 app.post('/register', (req, res) => {
     const { email, password } = req.body;
     const hashedPassword = bcrypt.hashSync(password, 10);
-    users.push({ email, password: hashedPassword });
+    users.push({ email, password: hashedPassword }); 
     res.json({ message: 'Usuario registrado correctamente' });
 });
 
@@ -88,11 +95,9 @@ app.post('/login', (req, res) => {
     }
 });
 
-app.post('/cores', (req) => {
-    io.emit('coresUsage', { data: req.body});
-});
 
-// Middleware para proteger rutas
+
+// Middleware para proteger rutas (JWT)
 const authenticateToken = (req, res, next) => {
     const token = req.headers['authorization'];
     if (!token) return res.sendStatus(403);
